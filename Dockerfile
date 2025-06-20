@@ -53,10 +53,6 @@ WORKDIR /var/www/html
 COPY package*.json ./
 COPY vite.config.js ./
 
-# ----------------------------
-# 6. Install Node/Vite dependencies
-# ----------------------------
-RUN npm install
 
 # ----------------------------
 # 7. Copy entire Laravel project
@@ -77,7 +73,11 @@ RUN mkdir -p database \
     && chmod 664 database/database.sqlite \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
-
+# ----------------------------
+# 6. Install Node/Vite dependencies
+# ----------------------------
+RUN npm install
+RUN npm run build
 # ----------------------------
 # 11. Expose Apache and set startup command
 # ----------------------------
