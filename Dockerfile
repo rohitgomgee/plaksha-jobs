@@ -37,9 +37,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set proper permissions
+# Ensure SQLite DB file exists and set permissions
+RUN touch database/database.sqlite \
+    && chmod 664 database/database.sqlite
+
+# Set proper permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 storage bootstrap/cache database/database.sqlite
+    && chmod -R 775 storage bootstrap/cache
 
 # Expose Apache port
 EXPOSE 80
