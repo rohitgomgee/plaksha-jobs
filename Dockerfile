@@ -62,11 +62,7 @@ COPY . .
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader
 
-# ----------------------------
-# 9. Set build environment and build frontend
-# ----------------------------
-ENV NODE_ENV=production
-RUN npm run build
+
 
 # ----------------------------
 # 10. Set permissions and ensure SQLite (optional)
@@ -75,8 +71,12 @@ RUN mkdir -p database \
     && touch database/database.sqlite \
     && chmod 664 database/database.sqlite \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache resources
+# ----------------------------
+# 9. Set build environment and build frontend
+# ----------------------------
 
+RUN npm run build
 # ----------------------------
 # 11. Expose Apache and set startup command
 # ----------------------------
