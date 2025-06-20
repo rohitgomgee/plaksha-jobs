@@ -77,7 +77,6 @@ RUN mkdir -p database \
 # 6. Install Node/Vite dependencies
 # ----------------------------
 RUN npm install
-RUN npm install bootstrap-icons
 RUN npm run build
 # ----------------------------
 # 11. Expose Apache and set startup command
