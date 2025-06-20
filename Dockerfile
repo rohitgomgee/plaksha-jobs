@@ -1,52 +1,90 @@
-# Use official PHP image with Apache
+# Base image: PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# Set working directory
-WORKDIR /var/www/html
-
-# Install dependencies
+# ----------------------------
+# 1. Install OS and PHP dependencies
+# ----------------------------
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     zip \
     unzip \
     libzip-dev \
-    libpng-dev \
     libonig-dev \
     libxml2-dev \
-    libsqlite3-dev \
     sqlite3 \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    npm \
-    gnupg \
+    libsqlite3-dev \
     ca-certificates \
-    && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip
+    python3 \
+    make \
+    g++ \
+    gnupg \
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# ----------------------------
+# 2. Install Node.js v22.13.0 manually
+# ----------------------------
+ENV NODE_VERSION=22.13.0
 
-# Enable Apache mod_rewrite
+RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz -o node.tar.xz \
+    && mkdir -p /usr/local/lib/nodejs \
+    && tar -xJf node.tar.xz -C /usr/local/lib/nodejs \
+    && rm node.tar.xz \
+    && ln -s /usr/local/lib/nodejs/node-v$NODE_VERSION-linux-x64/bin/node /usr/bin/node \
+    && ln -s /usr/local/lib/nodejs/node-v$NODE_VERSION-linux-x64/bin/npm /usr/bin/npm \
+    && ln -s /usr/local/lib/nodejs/node-v$NODE_VERSION-linux-x64/bin/npx /usr/bin/npx
+
+# ----------------------------
+# 3. Enable Apache rewrite module and set public dir
+# ----------------------------
 RUN a2enmod rewrite
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
 
-# Install Node.js 18 (for Vite compatibility)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs
+# ----------------------------
+# 4. Set working directory
+# ----------------------------
+WORKDIR /var/www/html
 
-# Copy Laravel app files
+# ----------------------------
+# 5. Copy only package.json & vite config first (npm cache layer)
+# ----------------------------
+COPY package*.json ./
+COPY vite.config.js ./
+
+# ----------------------------
+# 6. Install Node/Vite dependencies
+# ----------------------------
+RUN npm install
+
+# ----------------------------
+# 7. Copy entire Laravel project
+# ----------------------------
 COPY . .
 
-# Install Laravel dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# ----------------------------
+# 8. Copy Composer from official image and install PHP dependencies
+# ----------------------------
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer install --no-dev --optimize-autoloader
 
-# Install Vite + frontend dependencies
-RUN npm install && npm run build
+# ----------------------------
+# 9. Set build environment and build frontend
+# ----------------------------
+RUN npm run build
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+# ----------------------------
+# 10. Set permissions and ensure SQLite (optional)
+# ----------------------------
+RUN mkdir -p database \
+    && touch database/database.sqlite \
+    && chmod 664 database/database.sqlite \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
 
-# Expose Apache port
+# ----------------------------
+# 11. Expose Apache and set startup command
+# ----------------------------
 EXPOSE 80
-
-# Start Apache server
-CMD ["apache2-foreground"]
+CMD php artisan migrate --force && apache2-foreground
