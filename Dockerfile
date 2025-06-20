@@ -1,7 +1,7 @@
-# Use PHP with Apache
+# Use PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -19,10 +19,16 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
+# Set Apache's document root to /var/www/html/public
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+
+# Update Apache config to use the new document root
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
+
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy Laravel project files into container
+# Copy project files
 COPY . .
 
 # Install Composer
@@ -31,12 +37,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Permissions for Laravel
+# Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
-# Expose port 80
+# Expose Apache port
 EXPOSE 80
 
-# Start Laravel & Apache
+# Run migrations and start Apache
 CMD php artisan migrate --force && apache2-foreground
