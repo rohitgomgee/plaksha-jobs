@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="title">Manage Job Listings</h1>
+        <h1>Manage Job Listings</h1>
         <a href="{{ route('admin.jobs.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Job
         </a>
