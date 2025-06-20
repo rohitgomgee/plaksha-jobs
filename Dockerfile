@@ -70,11 +70,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader
 
 # ----------------------------
-# 9. Set build environment and build frontend
-# ----------------------------
-RUN npm run build
-
-# ----------------------------
 # 10. Set permissions and ensure SQLite (optional)
 # ----------------------------
 RUN mkdir -p database \
