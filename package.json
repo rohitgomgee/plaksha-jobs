@@ -2,9 +2,13 @@
     "$schema": "https://json.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "engines": {
+        "node": "20.x"
+    },
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "start": "vite preview --port $PORT"
     },
     "devDependencies": {
         "@fullhuman/postcss-purgecss": "^7.0.2",
